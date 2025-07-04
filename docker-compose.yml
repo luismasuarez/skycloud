@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8
+    container_name: mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    networks:
+      - default
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mongodb:
+    image: mongodb/mongodb-community-server:latest
+    container_name: mongodb
+    restart: always
+    ports:
+      # - 27017:27017  # Descomenta solo si necesitas acceso externo
+    environment:
+      - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_ROOT_USER}
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+    networks:
+      - default
+    volumes:
+      - mongodb_data:/data/db
+
+  dbgate:
+    image: dbgate/dbgate
+    container_name: dbgate
+    restart: always
+    ports:
+      - 8082:3000  # Cambia 8082 si ya está en uso
+    volumes:
+      - dbgate_data:/root/.dbgate
+    environment:
+      CONNECTIONS: con1, con2
+
+      LABEL_con1: MySql
+      SERVER_con1: mysql
+      USER_con1: ${MYSQL_USER}
+      PASSWORD_con1: ${MYSQL_PASSWORD}
+      PORT_con1: 3306
+      ENGINE_con1: mysql@dbgate-plugin-mysql
+
+      LABEL_con2: MongoDB
+      URL_con2: mongodb://${MONGODB_ROOT_USER}:${MONGODB_ROOT_PASSWORD}@mongodb:27017
+      ENGINE_con2: mongo@dbgate-plugin-mongo
+    networks:
+      - default
+    depends_on:
+      - db
+      - mongodb
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - 5672:5672
+      # - 15672:15672  # Panel de administración, restringe acceso externo si es posible
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST}
+    networks:
+      - default
+
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"     # HTTP proxy
+      - "443:443"   # HTTPS proxy
+      - "81:81"     # Panel web NPM, cambia tras primer login
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - default
+
+  # Ejemplo de Jenkins listo para agregar:
+  jenkins:
+    build:
+     context: ./jenkins
+     dockerfile: Dockerfile
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock  # Permite a Jenkins controlar Docker del host
+    # environment:
+    #   - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    restart: unless-stopped
+    networks:
+      - default
+
+networks:
+  default:
+    external: true
+    name: skycloud
+
+volumes:
+  mysql_data:
+  mongodb_data:
+  dbgate_data:
+  rabbitmq_data:
+  npm_data:
+  npm_letsencrypt:
+  portainer_data:
+  jenkins_home:
