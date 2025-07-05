@@ -3,7 +3,7 @@
 set -e
 
 # Crear red externa si no existe
-NETWORK_NAME="steampunker"
+NETWORK_NAME="skycloud"
 if ! docker network ls --format '{{.Name}}' | grep -qw "$NETWORK_NAME"; then
   echo "Creando red externa: $NETWORK_NAME"
   docker network create "$NETWORK_NAME"

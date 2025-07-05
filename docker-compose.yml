@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+# MySQL
   db:
     image: mysql:8
     container_name: mysql
@@ -14,7 +15,7 @@ services:
       - default
     volumes:
       - mysql_data:/var/lib/mysql
-
+# MongoDB
   mongodb:
     image: mongodb/mongodb-community-server:latest
     container_name: mongodb
@@ -28,7 +29,7 @@ services:
       - default
     volumes:
       - mongodb_data:/data/db
-
+# DBGate
   dbgate:
     image: dbgate/dbgate
     container_name: dbgate
@@ -56,6 +57,7 @@ services:
       - db
       - mongodb
 
+# RabbitMQ
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -72,6 +74,7 @@ services:
     networks:
       - default
 
+# Nginx Proxy Manager
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
     container_name: nginx-proxy-manager
@@ -86,6 +89,7 @@ services:
     networks:
       - default
 
+# Portainer
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
@@ -98,7 +102,7 @@ services:
     networks:
       - default
 
-  # Ejemplo de Jenkins listo para agregar:
+# Jenkins
   jenkins:
     build:
      context: ./jenkins
@@ -116,7 +120,8 @@ services:
     networks:
       - default
 
-    watchtower:
+# Watchtower para actualizaciones automáticas
+  watchtower:
     image: containrrr/watchtower
     container_name: watchtower
     volumes:
@@ -126,7 +131,8 @@ services:
     networks:
       - default
 
-    cadvisor:
+# cAdvisor para monitoreo de recursos
+  cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     restart: unless-stopped
